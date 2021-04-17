@@ -33,6 +33,12 @@ export class Usuario extends Entity {
     type: 'string',
     required: true,
   })
+  Contraseña: string;
+
+  @property({
+    type: 'string',
+    required: true,
+  })
   Celular: string;
 
   @property({
@@ -42,7 +48,7 @@ export class Usuario extends Entity {
   Ciudad_Accion: string;
 
   @belongsTo(() => Rol, {name: 'Rol'})
-  codRol: number;
+  codRol: string;
 
   constructor(data?: Partial<Usuario>) {
     super(data);

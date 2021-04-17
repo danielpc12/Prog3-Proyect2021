@@ -66,45 +66,45 @@ export class Cliente extends Entity {
 
   @property({
     type: 'number',
-    required: true,
+    required: false,
   })
-  Ingresos: number;
+  Ingresos?: number;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Datos_Trabajo: string;
+  Datos_Trabajo?: string;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Tiempo_Trabajoact: string;
+  Tiempo_Trabajoact?: string;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Nom_Refam: string;
+  Nom_Refam?: string;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Tel_Refam: string;
+  Tel_Refam?: string;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Nom_refper: string;
+  Nom_refper?: string;
 
   @property({
     type: 'string',
-    required: true,
+    required: false,
   })
-  Tel_Refper: string;
+  Tel_Refper?: string;
 
   @belongsTo(() => Ciudad, {name: 'Ciudad'})
   codCiudad: number;

@@ -3,7 +3,7 @@ import {
   CountSchema,
   Filter,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
   del,
@@ -13,11 +13,11 @@ import {
   param,
   patch,
   post,
-  requestBody,
+  requestBody
 } from '@loopback/rest';
 import {
   Rol,
-  Usuario,
+  Usuario
 } from '../models';
 import {RolRepository} from '../repositories';
 
@@ -39,7 +39,7 @@ export class RolUsuarioController {
     },
   })
   async find(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @param.query.object('filter') filter?: Filter<Usuario>,
   ): Promise<Usuario[]> {
     return this.rolRepository.usuarios(id).find(filter);
@@ -79,7 +79,7 @@ export class RolUsuarioController {
     },
   })
   async patch(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @requestBody({
       content: {
         'application/json': {
@@ -102,7 +102,7 @@ export class RolUsuarioController {
     },
   })
   async delete(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @param.query.object('where', getWhereSchemaFor(Usuario)) where?: Where<Usuario>,
   ): Promise<Count> {
     return this.rolRepository.usuarios(id).delete(where);
