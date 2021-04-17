@@ -1,6 +1,19 @@
-import {Entity, model, property} from '@loopback/repository';
+import {belongsTo, Entity, hasMany, model, property} from '@loopback/repository';
+import {Ciudad} from './ciudad.model';
+import {Solicitud} from './solicitud.model';
 
-@model()
+@model({
+  settings: {
+    foreignKeys: {
+      fk_cod_ciudad_cliente: {
+        name: 'fk_cod_ciudad_cliente',
+        entity: 'Ciudad',
+        entityKey: 'Codigo',
+        foreignKey: 'codCiudad',
+      },
+    },
+  },
+})
 export class Cliente extends Entity {
   @property({
     type: 'number',
@@ -93,6 +106,11 @@ export class Cliente extends Entity {
   })
   Tel_Refper: string;
 
+  @belongsTo(() => Ciudad, {name: 'Ciudad'})
+  codCiudad: number;
+
+  @hasMany(() => Solicitud, {keyTo: 'docCliente'})
+  solicitudes: Solicitud[];
 
   constructor(data?: Partial<Cliente>) {
     super(data);

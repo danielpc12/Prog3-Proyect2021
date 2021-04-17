@@ -1,13 +1,25 @@
-import {Entity, model, property} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
+import {Solicitud} from './solicitud.model';
 
-@model()
+@model({
+  settings: {
+    foreignKeys: {
+      fk_cod_solicitud: {
+        name: 'fk_cod_solicitud',
+        entity: 'Solicitud',
+        entityKey: 'Codigo',
+        foreignKey: 'codSolicitud',
+      },
+    },
+  },
+})
 export class Pagos extends Entity {
   @property({
-    type: 'string',
+    type: 'number',
     id: true,
     generated: true,
   })
-  Comprobante?: string;
+  Comprobante?: number;
 
   @property({
     type: 'number',
@@ -15,6 +27,8 @@ export class Pagos extends Entity {
   })
   Valor: number;
 
+  @belongsTo(() => Solicitud, {name: 'Solicitud'})
+  codSolicitud: number;
 
   constructor(data?: Partial<Pagos>) {
     super(data);

@@ -7,7 +7,7 @@ const config = {
   url: '',
   host: 'localhost',
   port: 3306,
-  user: '',
+  user: 'root',
   password: '',
   database: 'InmobiliariaDB'
 };
