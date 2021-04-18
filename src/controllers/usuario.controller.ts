@@ -22,9 +22,10 @@ import {
   requestBody,
   response
 } from '@loopback/rest';
+import {Keys as llaves} from '../config/keys';
 import {Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
-import {GeneralFnService} from '../services';
+import {GeneralFnService, NotificationService} from '../services';
 
 export class UsuarioController {
   constructor(
@@ -32,6 +33,8 @@ export class UsuarioController {
     public usuarioRepository: UsuarioRepository,
     @service(GeneralFnService)
     public fnService: GeneralFnService,
+    @service(NotificationService)
+    public servicioNotificacion: NotificationService,
   ) { }
 
   @post('/usuarios')
@@ -60,7 +63,13 @@ export class UsuarioController {
 
     usuario.Contraseña = claveCifrada;
 
-    return this.usuarioRepository.create(usuario);
+    let usuarioAgregado = await this.usuarioRepository.create(usuario);
+
+    // Notificar al usuario
+    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${usuarioAgregado.codRol}<br><br>Bienvenido<strong>`;
+    this.servicioNotificacion.EnviarEmail(usuarioAgregado.Correo, llaves.AsuntoRegistroUsuario, contenido);
+
+    return usuarioAgregado
   }
 
   @get('/usuarios/count')
