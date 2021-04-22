@@ -15,11 +15,24 @@ export class JwtService {
     let tk = jwt.sign({
       exp: llaves.expTimeJWT,
       data: {
+        documento: usuario.Documento,
         nombre: usuario.Nombre,
         correo: usuario.Correo,
         role: usuario.codRol
       }
     }, claveSecreta);
     return tk;
+  }
+
+  /**
+ * Verificar un token
+ */
+  VerificarTokenJWT(token: string) {
+    try {
+      let decoded = jwt.verify(token, llaves.jwtKey);
+      return decoded
+    } catch {
+      return null;
+    }
   }
 }
