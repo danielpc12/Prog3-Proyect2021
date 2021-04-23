@@ -1,3 +1,4 @@
+import {authenticate} from '@loopback/authentication';
 import {service} from '@loopback/core';
 import {
   Count,
@@ -27,6 +28,7 @@ import {Credenciales, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
 import {GeneralFnService, JwtService, NotificationService} from '../services';
 
+@authenticate('admin')
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
@@ -66,9 +68,17 @@ export class UsuarioController {
     usuario.Contraseña = claveCifrada;
 
     let usuarioAgregado = await this.usuarioRepository.create(usuario);
+    let rol = ''
+
+    if (usuarioAgregado.codRol == '607a93e43fe1ecffb6d7679c') {
+      rol = 'Administrador'
+    }
+    else {
+      rol = 'Vendedor'
+    }
 
     // Notificar al usuario
-    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${usuarioAgregado.codRol}<br><br>Bienvenido<strong>`;
+    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${rol}<br><br>Bienvenido<strong>`;
     this.servicioNotificacion.EnviarEmail(usuarioAgregado.Correo, llaves.AsuntoRegistroUsuario, contenido);
 
     return usuarioAgregado
@@ -175,6 +185,7 @@ export class UsuarioController {
     await this.usuarioRepository.deleteById(id);
   }
 
+  @authenticate.skip()
   @post('/identificar', {
     responses: {
       '200': {
@@ -192,17 +203,25 @@ export class UsuarioController {
     })
     credenciales: Credenciales
   ): Promise<object> {
-    let usuario = await this.usuarioRepository.findOne({where: {Correo: credenciales.correo, Contraseña: credenciales.clave}});
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: credenciales.correo}});
     if (usuario) {
-      //Genear token
-      let tk = this.servicioJWT.CrearTokenJWT(usuario);
-      usuario.Contraseña = '';
-      return {
-        user: usuario,
-        token: tk
-      };
+      let contraseña = this.fnService.DecifrarTexto(usuario.Contraseña!);
+      console.log(usuario.Contraseña)
+      console.log(contraseña)
+      if (contraseña == credenciales.clave) {
+        //Genear token
+        let tk = this.servicioJWT.CrearTokenJWT(usuario);
+        usuario.Contraseña = '';
+        return {
+          user: usuario,
+          token: tk
+        };
+      }
+      else {
+        throw new HttpErrors[401]("Contraseña incorrecta.");
+      }
     } else {
-      throw new HttpErrors[401]("Correo o contraseña incorrecta.");
+      throw new HttpErrors[401]("Correo incorrecto.");
     }
   }
 
