@@ -9,7 +9,7 @@ import {
 } from '@loopback/repository';
 import {
   del, get,
-  getModelSchemaRef, param,
+  getModelSchemaRef, HttpErrors, param,
 
 
   patch, post,
@@ -23,11 +23,12 @@ import {
   response
 } from '@loopback/rest';
 import {Keys as llaves} from '../config/keys';
-import {Usuario} from '../models';
+import {ResetearClave, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
 import {GeneralFnService, NotificationService} from '../services';
 
 export class UsuarioController {
+  servicioFunciones: any;
   constructor(
     @repository(UsuarioRepository)
     public usuarioRepository: UsuarioRepository,
@@ -134,6 +135,45 @@ export class UsuarioController {
     @param.filter(Usuario, {exclude: 'where'}) filter?: FilterExcludingWhere<Usuario>
   ): Promise<Usuario> {
     return this.usuarioRepository.findById(id, filter);
+  }
+
+  @post('/reset-password')
+  @response(200, {
+    content: {'aplication/json': {schema: getModelSchemaRef(ResetearClave)}},
+  })
+  async resetPassword(
+    @requestBody({
+      content: {
+        'aplication/json': {
+          schema: getModelSchemaRef(ResetearClave),
+        },
+      },
+    })
+    resetearClave: ResetearClave,
+  ): Promise<Object> {
+
+    let usuario = await this.usuarioRepository.findOne({where: {nombre_usuario: resetearClave.correo}})
+    if (!usuario) {
+      throw new HttpErrors[401]("usuario no existe");
+    }
+
+    let claveAleatoria = this.servicioFunciones.GenerarClaveAleatoria();
+    console.log(claveAleatoria);
+    let claveCifrada = this.servicioFunciones.CifrarTexto(claveAleatoria);
+    console.log(claveCifrada);
+
+    usuario.Contraseña = claveCifrada;
+    await this.usuarioRepository.update(usuario);
+    let contenido = `hola, buen dia. usted a solicitado una nueva contraseña para la plataforma sus datos son:
+      Usuario: ${usuario.Nombre} y Contraseña: ${claveAleatoria}
+
+      Gracias y bienbenido a nuestros servicios
+      `;
+    this.servicioNotificacion.EnviarNotificacionPorSMS(usuario.Celular, contenido);
+
+    return {
+      envio: "OK"
+    };
   }
 
   @patch('/usuarios/{id}')
