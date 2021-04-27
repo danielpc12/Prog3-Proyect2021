@@ -1,30 +1,36 @@
+import {authenticate} from '@loopback/authentication';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
+  del, get,
+  getModelSchemaRef, param,
+
+
+  patch, post,
+
+
+
+
   put,
-  del,
+
   requestBody,
-  response,
+  response
 } from '@loopback/rest';
 import {Inmueble} from '../models';
 import {InmuebleRepository} from '../repositories';
 
+@authenticate('admin')
 export class InmuebleController {
   constructor(
     @repository(InmuebleRepository)
-    public inmuebleRepository : InmuebleRepository,
-  ) {}
+    public inmuebleRepository: InmuebleRepository,
+  ) { }
 
   @post('/inmuebles')
   @response(200, {
@@ -58,6 +64,7 @@ export class InmuebleController {
     return this.inmuebleRepository.count(where);
   }
 
+  @authenticate.skip()
   @get('/inmuebles')
   @response(200, {
     description: 'Array of Inmueble model instances',
@@ -95,6 +102,7 @@ export class InmuebleController {
     return this.inmuebleRepository.updateAll(inmueble, where);
   }
 
+  @authenticate.skip()
   @get('/inmuebles/{id}')
   @response(200, {
     description: 'Inmueble model instance',

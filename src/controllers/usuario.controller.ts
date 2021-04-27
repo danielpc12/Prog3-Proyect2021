@@ -1,30 +1,45 @@
+import {authenticate} from '@loopback/authentication';
+import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
-  put,
-  del,
-  requestBody,
-  response,
-} from '@loopback/rest';
-import {Usuario} from '../models';
-import {UsuarioRepository} from '../repositories';
+  del, get,
+  getModelSchemaRef, HttpErrors, param,
 
+
+  patch, post,
+
+
+
+
+  put,
+
+  requestBody,
+  response
+} from '@loopback/rest';
+import {Keys as llaves} from '../config/keys';
+import {Credenciales, Usuario} from '../models';
+import {UsuarioRepository} from '../repositories';
+import {GeneralFnService, JwtService, NotificationService} from '../services';
+
+@authenticate('admin')
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
-    public usuarioRepository : UsuarioRepository,
-  ) {}
+    public usuarioRepository: UsuarioRepository,
+    @service(GeneralFnService)
+    public fnService: GeneralFnService,
+    @service(NotificationService)
+    public servicioNotificacion: NotificationService,
+    @service(JwtService)
+    public servicioJWT: JwtService,
+  ) { }
 
   @post('/usuarios')
   @response(200, {
@@ -37,14 +52,36 @@ export class UsuarioController {
         'application/json': {
           schema: getModelSchemaRef(Usuario, {
             title: 'NewUsuario',
-            
+            exclude: ['Contraseña'],
           }),
         },
       },
     })
     usuario: Usuario,
   ): Promise<Usuario> {
-    return this.usuarioRepository.create(usuario);
+    let claveAleatoria = this.fnService.GenerarContraseñaAleatoria();
+    console.log(claveAleatoria);
+
+    let claveCifrada = this.fnService.CifrarTexto(claveAleatoria);
+    console.log(claveCifrada);
+
+    usuario.Contraseña = claveCifrada;
+
+    let usuarioAgregado = await this.usuarioRepository.create(usuario);
+    let rol = ''
+
+    if (usuarioAgregado.codRol == '607a93e43fe1ecffb6d7679c') {
+      rol = 'Administrador'
+    }
+    else {
+      rol = 'Vendedor'
+    }
+
+    // Notificar al usuario
+    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${rol}<br><br>Bienvenido<strong>`;
+    this.servicioNotificacion.EnviarEmail(usuarioAgregado.Correo, llaves.AsuntoRegistroUsuario, contenido);
+
+    return usuarioAgregado
   }
 
   @get('/usuarios/count')
@@ -147,4 +184,45 @@ export class UsuarioController {
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.usuarioRepository.deleteById(id);
   }
+
+  @authenticate.skip()
+  @post('/identificar', {
+    responses: {
+      '200': {
+        description: 'Identificacion de usuarios'
+      }
+    }
+  })
+  async identificar(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Credenciales),
+        },
+      },
+    })
+    credenciales: Credenciales
+  ): Promise<object> {
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: credenciales.correo}});
+    if (usuario) {
+      let contraseña = this.fnService.DecifrarTexto(usuario.Contraseña!);
+      console.log(usuario.Contraseña)
+      console.log(contraseña)
+      if (contraseña == credenciales.clave) {
+        //Genear token
+        let tk = this.servicioJWT.CrearTokenJWT(usuario);
+        usuario.Contraseña = '';
+        return {
+          user: usuario,
+          token: tk
+        };
+      }
+      else {
+        throw new HttpErrors[401]("Contraseña incorrecta.");
+      }
+    } else {
+      throw new HttpErrors[401]("Correo incorrecto.");
+    }
+  }
+
 }
