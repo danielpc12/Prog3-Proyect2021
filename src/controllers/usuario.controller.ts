@@ -24,7 +24,7 @@ import {
   response
 } from '@loopback/rest';
 import {Keys as llaves} from '../config/keys';
-import {Credenciales, Usuario} from '../models';
+import {CambioContrasena, Credenciales, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
 import {GeneralFnService, JwtService, NotificationService} from '../services';
 
@@ -40,6 +40,8 @@ export class UsuarioController {
     @service(JwtService)
     public servicioJWT: JwtService,
   ) { }
+
+  @authenticate.skip()
 
   @post('/usuarios')
   @response(200, {
@@ -225,4 +227,50 @@ export class UsuarioController {
     }
   }
 
+  @authenticate.skip()
+
+  @post('/cambio-clave', {
+    responses: {
+      '200': {
+        description: 'Cambiar contraseña'
+      }
+    }
+  })
+  async 'cambio-clave'(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(CambioContrasena),
+        },
+      },
+    })
+    CambioContrasena: CambioContrasena
+  ): Promise<object> {
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: CambioContrasena.correo}});
+    if (usuario) {
+      let contraseña = this.fnService.DecifrarTexto(usuario.Contraseña!);
+      // console.log(usuario.Contraseña)
+      console.log(contraseña)
+      console.log(CambioContrasena.correo)
+      console.log(CambioContrasena.Clave)
+      console.log(CambioContrasena.ClaveNueva)
+      if (contraseña == CambioContrasena.Clave) {
+        //Genear token
+        let nuevaContraseña = (CambioContrasena.ClaveNueva!);
+        let claveCifrada = this.fnService.CifrarTexto(nuevaContraseña);
+        console.log(nuevaContraseña)
+        console.log(claveCifrada)
+        usuario.Contraseña = claveCifrada;
+        await this.usuarioRepository.update(usuario);
+        return {
+          respuesta: 'Contraseña Cambiada Exitosamente',
+        };
+      }
+      else {
+        throw new HttpErrors[401]("Contraseña incorrecta.");
+      }
+    } else {
+      throw new HttpErrors[401]("Correo incorrecto.");
+    }
+  }
 }
