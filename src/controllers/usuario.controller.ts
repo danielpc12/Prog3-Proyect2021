@@ -28,7 +28,6 @@ import {UsuarioRepository} from '../repositories';
 import {GeneralFnService, NotificationService} from '../services';
 
 export class UsuarioController {
-  servicioFunciones: any;
   constructor(
     @repository(UsuarioRepository)
     public usuarioRepository: UsuarioRepository,
@@ -152,14 +151,14 @@ export class UsuarioController {
     resetearClave: ResetearClave,
   ): Promise<Object> {
 
-    let usuario = await this.usuarioRepository.findOne({where: {nombre_usuario: resetearClave.correo}})
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: resetearClave.correo}})
     if (!usuario) {
       throw new HttpErrors[401]("usuario no existe");
     }
 
-    let claveAleatoria = this.servicioFunciones.GenerarClaveAleatoria();
+    let claveAleatoria = this.fnService.GenerarContraseñaAleatoria();
     console.log(claveAleatoria);
-    let claveCifrada = this.servicioFunciones.CifrarTexto(claveAleatoria);
+    let claveCifrada = this.fnService.CifrarTexto(claveAleatoria);
     console.log(claveCifrada);
 
     usuario.Contraseña = claveCifrada;
