@@ -33,17 +33,25 @@ export class NotificationService {
    * Enviar mensaje al celular del usuario
    */
   EnviarNotificacionPorSMS(telefon: string, contenido: string) {
-    var accountSid = process.env.TWILLIO_SSID;
-    var authToken = process.env.TWILLIO_TK;
+    try {
+      var accountSid = process.env.TWILLIO_SSID;
+      var authToken = process.env.TWILLIO_TK;
 
 
-    var client = new twilio(accountSid, authToken);
+      var client = new twilio(accountSid, authToken);
 
-    client.messages.create({
-      body: contenido,
-      to: telefon,
-      from: llaves.twilioPhone
-    })
-      .then((message: any) => console.log(message.sid));
+      client.messages.create({
+        body: contenido,
+        to: telefon,
+        from: llaves.twilioPhone
+      })
+        .then((message: any) => {
+          console.log(message.sid);
+          return true;
+        });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

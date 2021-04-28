@@ -24,7 +24,6 @@ import {
   response
 } from '@loopback/rest';
 import {Keys as llaves} from '../config/keys';
-import {ResetearClave, Usuario} from '../models';
 import {CambioContrasena, Credenciales, ResetearClave, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
 import {GeneralFnService, JwtService, NotificationService} from '../services';
@@ -168,7 +167,7 @@ export class UsuarioController {
 
     let usuario = await this.usuarioRepository.findOne({where: {Correo: resetearClave.correo}})
     if (!usuario) {
-      throw new HttpErrors[401]("usuario no existe");
+      throw new HttpErrors[403]("usuario no existe");
     }
 
     let claveAleatoria = this.fnService.GenerarContraseñaAleatoria();
@@ -179,14 +178,18 @@ export class UsuarioController {
     usuario.Contraseña = claveCifrada;
     await this.usuarioRepository.update(usuario);
     let contenido = `hola, buen dia. usted a solicitado una nueva contraseña para la plataforma sus datos son:
-      Usuario: ${usuario.Nombre} y Contraseña: ${claveAleatoria}
+      Usuario: ${usuario.Correo} y Contraseña: ${claveAleatoria}
 
       Gracias y bienbenido a nuestros servicios
       `;
-    this.servicioNotificacion.EnviarNotificacionPorSMS(usuario.Celular, contenido);
-
+    let enviado = this.servicioNotificacion.EnviarNotificacionPorSMS(usuario.Celular, contenido);
+    if (enviado) {
+      return {
+        envio: "OK"
+      };
+    }
     return {
-      envio: "OK"
+      envio: "KO"
     };
   }
 
