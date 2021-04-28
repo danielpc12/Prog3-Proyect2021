@@ -41,7 +41,6 @@ export class UsuarioController {
     public servicioJWT: JwtService,
   ) { }
 
-  @authenticate.skip()
 
   @post('/usuarios')
   @response(200, {
@@ -150,6 +149,7 @@ export class UsuarioController {
     return this.usuarioRepository.findById(id, filter);
   }
 
+  @authenticate.skip()
   @post('/reset-password')
   @response(200, {
     content: {'aplication/json': {schema: getModelSchemaRef(ResetearClave)}},
@@ -271,7 +271,6 @@ export class UsuarioController {
   }
 
   @authenticate.skip()
-
   @post('/cambio-clave', {
     responses: {
       '200': {
