@@ -9,3 +9,5 @@ export * from './cliente.model';
 export * from './rol.model';
 export * from './usuario.model';
 export * from './resetear-clave.model';
+export * from './credenciales.model';
+export * from './cambio-contrasena.model';

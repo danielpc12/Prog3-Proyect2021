@@ -28,4 +28,13 @@ export class GeneralFnService {
     let ciphertext = CryptoJS.AES.encrypt(texto, llaves.AESKey).toString();
     return ciphertext
   }
+
+  /**
+   * Decifrar string
+   */
+  DecifrarTexto(texto: string): string {
+    let bytes = CryptoJS.AES.decrypt(texto, llaves.AESKey);
+    let originalText = bytes.toString(CryptoJS.enc.Utf8)
+    return originalText;
+  }
 }

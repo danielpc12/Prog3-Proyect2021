@@ -1,3 +1,4 @@
+import {authenticate} from '@loopback/authentication';
 import {service} from '@loopback/core';
 import {
   Count,
@@ -24,9 +25,11 @@ import {
 } from '@loopback/rest';
 import {Keys as llaves} from '../config/keys';
 import {ResetearClave, Usuario} from '../models';
+import {CambioContrasena, Credenciales, ResetearClave, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
-import {GeneralFnService, NotificationService} from '../services';
+import {GeneralFnService, JwtService, NotificationService} from '../services';
 
+@authenticate('admin')
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
@@ -35,7 +38,11 @@ export class UsuarioController {
     public fnService: GeneralFnService,
     @service(NotificationService)
     public servicioNotificacion: NotificationService,
+    @service(JwtService)
+    public servicioJWT: JwtService,
   ) { }
+
+  @authenticate.skip()
 
   @post('/usuarios')
   @response(200, {
@@ -64,9 +71,17 @@ export class UsuarioController {
     usuario.Contraseña = claveCifrada;
 
     let usuarioAgregado = await this.usuarioRepository.create(usuario);
+    let rol = ''
+
+    if (usuarioAgregado.codRol == '607a93e43fe1ecffb6d7679c') {
+      rol = 'Administrador'
+    }
+    else {
+      rol = 'Vendedor'
+    }
 
     // Notificar al usuario
-    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${usuarioAgregado.codRol}<br><br>Bienvenido<strong>`;
+    let contenido = `<strong>Cordial saludo ${usuarioAgregado.Nombre}, estos son sus datos de acceso para el sistema de la constructora UdeC S.A.S <br><br><br>Usuario: ${usuarioAgregado.Correo}<br>Contraseña: ${claveAleatoria}<br>Rol: ${rol}<br><br>Bienvenido<strong>`;
     this.servicioNotificacion.EnviarEmail(usuarioAgregado.Correo, llaves.AsuntoRegistroUsuario, contenido);
 
     return usuarioAgregado
@@ -210,5 +225,92 @@ export class UsuarioController {
   })
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.usuarioRepository.deleteById(id);
+  }
+
+  @authenticate.skip()
+  @post('/identificar', {
+    responses: {
+      '200': {
+        description: 'Identificacion de usuarios'
+      }
+    }
+  })
+  async identificar(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Credenciales),
+        },
+      },
+    })
+    credenciales: Credenciales
+  ): Promise<object> {
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: credenciales.correo}});
+    if (usuario) {
+      let contraseña = this.fnService.DecifrarTexto(usuario.Contraseña!);
+      console.log(usuario.Contraseña)
+      console.log(contraseña)
+      if (contraseña == credenciales.clave) {
+        //Genear token
+        let tk = this.servicioJWT.CrearTokenJWT(usuario);
+        usuario.Contraseña = '';
+        return {
+          user: usuario,
+          token: tk
+        };
+      }
+      else {
+        throw new HttpErrors[401]("Contraseña incorrecta.");
+      }
+    } else {
+      throw new HttpErrors[401]("Correo incorrecto.");
+    }
+  }
+
+  @authenticate.skip()
+
+  @post('/cambio-clave', {
+    responses: {
+      '200': {
+        description: 'Cambiar contraseña'
+      }
+    }
+  })
+  async 'cambio-clave'(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(CambioContrasena),
+        },
+      },
+    })
+    CambioContrasena: CambioContrasena
+  ): Promise<object> {
+    let usuario = await this.usuarioRepository.findOne({where: {Correo: CambioContrasena.correo}});
+    if (usuario) {
+      let contraseña = this.fnService.DecifrarTexto(usuario.Contraseña!);
+      // console.log(usuario.Contraseña)
+      console.log(contraseña)
+      console.log(CambioContrasena.correo)
+      console.log(CambioContrasena.Clave)
+      console.log(CambioContrasena.ClaveNueva)
+      if (contraseña == CambioContrasena.Clave) {
+        //Genear token
+        let nuevaContraseña = (CambioContrasena.ClaveNueva!);
+        let claveCifrada = this.fnService.CifrarTexto(nuevaContraseña);
+        console.log(nuevaContraseña)
+        console.log(claveCifrada)
+        usuario.Contraseña = claveCifrada;
+        await this.usuarioRepository.update(usuario);
+        return {
+          respuesta: 'Contraseña Cambiada Exitosamente',
+        };
+      }
+      else {
+        throw new HttpErrors[401]("Contraseña incorrecta.");
+      }
+    } else {
+      throw new HttpErrors[401]("Correo incorrecto.");
+    }
   }
 }
